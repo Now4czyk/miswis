@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, getDocs } from 'firebase/firestore/lite';
+import { getFirestore, collection, getDocs, updateDoc, doc } from 'firebase/firestore/lite';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_API_KEY as string,
@@ -13,17 +13,51 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-export async function getTarget() {
-  const targetsCol = collection(db, 'target');
-  const targetSnapshot = await getDocs(targetsCol);
-  const targets = targetSnapshot.docs.map((doc) => doc.data());
+export module FirebaseService {
+  /** Get target temperature */
+  export function getTarget() {
+    const targetsCol = collection(db, 'target');
 
-  return targets[0];
+    return getDocs(targetsCol).then(
+      (data) => data.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Models.Target)[0]
+    );
+  }
+
+  /** Get sessions */
+  export function getSessions() {
+    const temperaturesCol = collection(db, 'sessions');
+    return getDocs(temperaturesCol).then(
+      (data) => data.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Models.Session[]
+    );
+  }
+
+  /** Get temperatures for the session  */
+  export function getSessionTemperatures(id: string) {
+    const temperaturesCol = collection(db, `sessions/${id}/temperatures`);
+    return getDocs(temperaturesCol).then((data) => data.docs.map((doc) => doc.data()) as Models.Temperature[]);
+  }
+
+  /** Update target temperature */
+  export async function updateTargetTemperature(id: string, temperature: number) {
+    const docRef = doc(db, 'target', id);
+    return await updateDoc(docRef, { temperature });
+  }
 }
 
-export async function getTemperatures() {
-  const temperaturesCol = collection(db, 'temperatures');
-  const temperatureSnapshot = await getDocs(temperaturesCol);
+export module Models {
+  export interface BaseEntity {
+    id: string;
+    timestamp: string;
+  }
 
-  return temperatureSnapshot.docs.map((doc) => doc.data());
+  export type Session = BaseEntity;
+
+  export interface Temperature extends BaseEntity {
+    temperature: number;
+  }
+
+  export interface Target {
+    id: string;
+    temperature: number;
+  }
 }

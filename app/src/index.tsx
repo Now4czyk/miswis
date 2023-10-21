@@ -2,13 +2,12 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.scss';
-import { Theme } from '@radix-ui/themes';
-import '@radix-ui/themes/styles.css';
+import { ChakraProvider } from '@chakra-ui/react';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <Theme>
+    <ChakraProvider>
       <App />
-    </Theme>
+    </ChakraProvider>
   </React.StrictMode>
 );
