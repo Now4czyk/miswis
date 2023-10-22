@@ -1,0 +1,75 @@
+{
+  "name": "react-ts-vite-pnpm",
+  "author": {
+    "name": "Haris Adilovic",
+    "email": "adilovicharis94@gmail.com",
+    "url": "https://www.linkedin.com/in/harkkozz/"
+  },
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "start": "vite --host",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:cov": "vitest run --coverage",
+    "format": "prettier src --write",
+    "lint:eslint": "eslint src --fix --cache --max-warnings=0",
+    "lint:ts-coverage": "type-coverage",
+    "lint:tsc": "tsc --project tsconfig.json",
+    "lint:staged": "lint-staged"
+  },
+  "dependencies": {
+    "@chakra-ui/react": "^2.8.1",
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@types/node": "^20.5.9",
+    "chart.js": "^4.4.0",
+    "firebase": "^10.5.0",
+    "framer-motion": "^10.16.4",
+    "react": "^18.2.0",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "^18.2.0",
+    "react-i18next": "^13.2.2",
+    "react-router": "^6.15.0",
+    "react-router-dom": "^6.15.0",
+    "sass": "^1.66.1",
+    "vite-plugin-checker": "^0.6.2",
+    "vite-plugin-svgr": "^3.2.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^14.0.0",
+    "@trivago/prettier-plugin-sort-imports": "^4.2.0",
+    "@types/react": "^18.2.21",
+    "@types/react-dom": "^18.2.7",
+    "@typescript-eslint/eslint-plugin": "^6.6.0",
+    "@typescript-eslint/parser": "^6.6.0",
+    "@vitejs/plugin-react": "^4.0.4",
+    "@vitest/coverage-istanbul": "^0.34.3",
+    "eslint": "^8.48.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "happy-dom": "^11.0.0",
+    "lint-staged": "^14.0.1",
+    "prettier": "^3.0.3",
+    "type-coverage": "^2.26.2",
+    "typescript": "^5.2.2",
+    "vite": "^4.4.9",
+    "vite-plugin-eslint": "^1.8.1",
+    "vite-tsconfig-paths": "^4.2.0",
+    "vitest": "^0.34.3"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "ignoreMissing": [
+        "rxjs",
+        "@vue/compier-sfc"
+      ]
+    }
+  },
+  "lint-staged": {
+    "src/**/*.{js,jsx,ts,tsx,json,css,md}": "prettier --write",
+    "src/**/*.{j,t}s?(x)": "eslint --cache --fix"
+  }
+}
