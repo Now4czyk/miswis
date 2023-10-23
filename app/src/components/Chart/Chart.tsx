@@ -1,9 +1,10 @@
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { FC, useEffect, useMemo } from 'react';
 import { useFetch } from '../../firebase/useFetch';
-import { FirebaseService, Models } from '../../firebase/firebase';
+import { FirebaseService } from '../../firebase/firebase';
 import { Line } from 'react-chartjs-2';
 import 'chart.js/auto';
 import { Box } from '@chakra-ui/react';
+import { Models } from 'firebase/models';
 
 export const Chart: FC<{ id: string }> = ({ id }) => {
   const { data: temperatures, reload } = useFetch<Array<Models.Temperature>>(

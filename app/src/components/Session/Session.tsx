@@ -1,7 +1,7 @@
 import { AccordionButton, AccordionIcon, AccordionItem, AccordionPanel, Box } from '@chakra-ui/react';
-import { Models } from 'firebase/firebase';
 import { FC } from 'react';
 import { Chart } from '../Chart';
+import { Models } from 'firebase/models';
 
 export const Session: FC<Models.Session> = (session) => (
   <AccordionItem>

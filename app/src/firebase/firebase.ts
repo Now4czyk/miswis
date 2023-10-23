@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, updateDoc, doc } from 'firebase/firestore/lite';
+import { Models } from './models';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_API_KEY as string,
@@ -41,23 +42,5 @@ export module FirebaseService {
   export async function updateTargetTemperature(id: string, temperature: number) {
     const docRef = doc(db, 'target', id);
     return await updateDoc(docRef, { temperature });
-  }
-}
-
-export module Models {
-  export interface BaseEntity {
-    id: string;
-    timestamp: string;
-  }
-
-  export type Session = BaseEntity;
-
-  export interface Temperature extends BaseEntity {
-    temperature: number;
-  }
-
-  export interface Target {
-    id: string;
-    temperature: number;
   }
 }
