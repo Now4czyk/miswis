@@ -52,12 +52,19 @@ const char PRIVATE_KEY[] PROGMEM = "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgk
 
 // Define Firebase Data object
 FirebaseData fbdo;
+FirebaseData collectionsfbdo;
 
 FirebaseAuth auth;
 FirebaseConfig config;
 
 bool taskCompleted = false;
 unsigned long dataMillis = 0;
+
+// CUSTOM VARS
+
+float target_temp = 0;
+bool should_change_collection = false;
+
 
 #if defined(ARDUINO_RASPBERRY_PI_PICO_W)
 WiFiMulti multi;
@@ -66,98 +73,133 @@ WiFiMulti multi;
 void setup()
 {
 
-    Serial.begin(115200);
+  Serial.begin(115200);
 
 #if defined(ARDUINO_RASPBERRY_PI_PICO_W)
-    multi.addAP(WIFI_SSID, WIFI_PASSWORD);
-    multi.run();
+  multi.addAP(WIFI_SSID, WIFI_PASSWORD);
+  multi.run();
 #else
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 #endif
 
-    Serial.print("Connecting to Wi-Fi");
-    unsigned long ms = millis();
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        Serial.print(".");
-        delay(300);
+  Serial.print("Connecting to Wi-Fi");
+  unsigned long ms = millis();
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.print(".");
+    delay(300);
 #if defined(ARDUINO_RASPBERRY_PI_PICO_W)
-        if (millis() - ms > 10000)
-            break;
+    if (millis() - ms > 10000)
+      break;
 #endif
-    }
-    Serial.println();
-    Serial.print("Connected with IP: ");
-    Serial.println(WiFi.localIP());
-    Serial.println();
+  }
+  Serial.println();
+  Serial.print("Connected with IP: ");
+  Serial.println(WiFi.localIP());
+  Serial.println();
 
-    Serial.printf("Firebase Client v%s\n\n", FIREBASE_CLIENT_VERSION);
+  Serial.printf("Firebase Client v%s\n\n", FIREBASE_CLIENT_VERSION);
 
-    /* Assign the user sign in credentials */
-    config.service_account.data.client_email = FIREBASE_CLIENT_EMAIL;
-    config.service_account.data.project_id = FIREBASE_PROJECT_ID;
-    config.service_account.data.private_key = PRIVATE_KEY;
+  /* Assign the user sign in credentials */
+  config.service_account.data.client_email = FIREBASE_CLIENT_EMAIL;
+  config.service_account.data.project_id = FIREBASE_PROJECT_ID;
+  config.service_account.data.private_key = PRIVATE_KEY;
 
-    // The WiFi credentials are required for Pico W
-    // due to it does not have reconnect feature.
+  // The WiFi credentials are required for Pico W
+  // due to it does not have reconnect feature.
 #if defined(ARDUINO_RASPBERRY_PI_PICO_W)
-    config.wifi.clearAP();
-    config.wifi.addAP(WIFI_SSID, WIFI_PASSWORD);
+  config.wifi.clearAP();
+  config.wifi.addAP(WIFI_SSID, WIFI_PASSWORD);
 #endif
 
-    /* Assign the callback function for the long running token generation task */
-    config.token_status_callback = tokenStatusCallback; // see addons/TokenHelper.h
+  /* Assign the callback function for the long running token generation task */
+  config.token_status_callback = tokenStatusCallback; // see addons/TokenHelper.h
 
-    // Comment or pass false value when WiFi reconnection will control by your code or third party library e.g. WiFiManager
-    Firebase.reconnectNetwork(true);
+  // Comment or pass false value when WiFi reconnection will control by your code or third party library e.g. WiFiManager
+  Firebase.reconnectNetwork(true);
 
-    // Since v4.4.x, BearSSL engine was used, the SSL buffer need to be set.
-    // Large data transmission may require larger RX buffer, otherwise connection issue or data read time out can be occurred.
-    fbdo.setBSSLBufferSize(4096 /* Rx buffer size in bytes from 512 - 16384 */, 1024 /* Tx buffer size in bytes from 512 - 16384 */);
+  // Since v4.4.x, BearSSL engine was used, the SSL buffer need to be set.
+  // Large data transmission may require larger RX buffer, otherwise connection issue or data read time out can be occurred.
+  fbdo.setBSSLBufferSize(4096 /* Rx buffer size in bytes from 512 - 16384 */, 1024 /* Tx buffer size in bytes from 512 - 16384 */);
 
-    // Limit the size of response payload to be collected in FirebaseData
-    fbdo.setResponseSize(2048);
+  // Limit the size of response payload to be collected in FirebaseData
+  fbdo.setResponseSize(2048);
 
-    Firebase.begin(&config, &auth);
+  Firebase.begin(&config, &auth);
 
-    // You can use TCP KeepAlive in FirebaseData object and tracking the server connection status, please read this for detail.
-    // https://github.com/mobizt/Firebase-ESP-Client#about-firebasedata-object
-    // fbdo.keepAlive(5, 5, 1);
+  // You can use TCP KeepAlive in FirebaseData object and tracking the server connection status, please read this for detail.
+  // https://github.com/mobizt/Firebase-ESP-Client#about-firebasedata-object
+  // fbdo.keepAlive(5, 5, 1);
 }
 
 void loop()
 {
 
-    // Firebase.ready() should be called repeatedly to handle authentication tasks.
+  // Firebase.ready() should be called repeatedly to handle authentication tasks.
 
-    if (Firebase.ready() && (millis() - dataMillis > 60000 || dataMillis == 0))
+  if (Firebase.ready())
+  {
+    // CHECKING TARGET TEMP
+    if(millis() - dataMillis > 1000 || dataMillis == 0) {
+      dataMillis = millis();
+
+    if (!taskCompleted)
     {
-        dataMillis = millis();
+      taskCompleted = true;
 
-        if (!taskCompleted)
-        {
-            taskCompleted = true;
-
-            // For the usage of FirebaseJson, see examples/FirebaseJson/BasicUsage/Create_Edit_Parse/Create_Edit_Parse.ino
-        }
-
-        String documentPath = "target/6FgDIGvjkF9dUePasOEJ";
-        String mask = "temperature";
-
-        // If the document path contains space e.g. "a b c/d e f"
-        // It should encode the space as %20 then the path will be "a%20b%20c/d%20e%20f"
-
-        Serial.print("Get a document... ");
-
-        if (Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), mask.c_str()))
-            { 
-              FirebaseJson payload;
-              payload.setJsonData(fbdo.payload().c_str());
-              FirebaseJsonData jsonData;
-              payload.get(jsonData, "fields/temperature/integerValue", true);
-              Serial.println(String(jsonData.intValue));
-            }
-        else
-            Serial.println(fbdo.errorReason());
+      // For the usage of FirebaseJson, see examples/FirebaseJson/BasicUsage/Create_Edit_Parse/Create_Edit_Parse.ino
     }
+
+    String documentPath = "target/6FgDIGvjkF9dUePasOEJ";
+    String mask = "temperature";
+
+    // If the document path contains space e.g. "a b c/d e f"
+    // It should encode the space as %20 then the path will be "a%20b%20c/d%20e%20f"
+
+
+    if (Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), mask.c_str()))
+    {
+      FirebaseJson payload;
+      payload.setJsonData(fbdo.payload().c_str());
+      FirebaseJsonData jsonData;
+      payload.get(jsonData, "fields/temperature/integerValue", true);
+      float new_target_temp = jsonData.floatValue;
+      if(new_target_temp != target_temp){
+        target_temp = new_target_temp;
+        should_change_collection = true;
+        Serial.println("New target temperature set: ");
+        Serial.println(String(target_temp));
+      }
+    }
+    else
+      Serial.println(fbdo.errorReason());
+    }
+
+    if(should_change_collection){
+      should_change_collection = false;
+
+      FirebaseJson query;
+      // query.set("select/fields/[0]/fieldPath", "myDouble");
+      // query.set("select/fields/[1]/fieldPath", "myInteger");
+        // query.set("select/fields/[2]/fieldPath", "myTimestamp");
+
+      query.set("from/collectionId", "sessions");
+      query.set("from/allDescendants", false);
+      query.set("orderBy/field/fieldPath", "timestamp");
+      query.set("orderBy/direction", "ASCENDING");
+      query.set("limit", 1);
+
+      if (Firebase.Firestore.runQuery(&collectionsfbdo, FIREBASE_PROJECT_ID, "" /* databaseId can be (default) or empty */, "/" /* The document path */, &query /* The FirebaseJson object holds the StructuredQuery data */))  
+        {
+          FirebaseJson payload;
+          FirebaseJsonData jsonData;
+          FirebaseJsonArray jsonArray;
+          jsonArray.setJsonArrayData(collectionsfbdo.payload().c_str());
+          jsonArray.get(jsonData, "[0]/document/name");
+          Serial.println(jsonData.stringValue);
+        }
+      else
+        Serial.println(collectionsfbdo.errorReason());
+    }
+  }
 }
