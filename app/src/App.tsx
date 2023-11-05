@@ -44,7 +44,7 @@ const App: FC = () => {
       <Text m="20px">Zadana temperatura {target?.temperature}</Text>
       <Flex gap="2" m="20px" lineHeight="40px">
         <Text>Zadaj temperaturę</Text>
-        <NumberInput defaultValue={20.0} step={0.1} min={10} max={50} onChange={(e) => setTemp(e)}>
+        <NumberInput defaultValue={20.0} step={0.1} min={0} max={100} onChange={(e) => setTemp(e)}>
           <NumberInputField width={200} />
           <NumberInputStepper>
             <NumberIncrementStepper />
