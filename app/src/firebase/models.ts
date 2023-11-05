@@ -1,7 +1,7 @@
 export module Models {
   export interface BaseEntity {
+    //id is a timestamp
     id: string;
-    timestamp: string;
   }
 
   export type Session = BaseEntity;

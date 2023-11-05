@@ -23,7 +23,7 @@ export const Chart: FC<{ id: string }> = ({ id }) => {
         {
           label: 'Temperatura dla kolejnych próbek',
           data: temperatures
-            ?.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+            ?.sort((a, b) => new Date(a.id).getTime() - new Date(b.id).getTime())
             .map(({ temperature }) => temperature),
           yAxisID: 'y',
           xAxisID: 'x'
@@ -54,7 +54,7 @@ export const Chart: FC<{ id: string }> = ({ id }) => {
   );
 
   return (
-    <Box height={300}>
+    <Box height={400}>
       <Line data={data} options={options} />
     </Box>
   );
