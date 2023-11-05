@@ -29,6 +29,8 @@
 #elif __has_include(<WiFiS3.h>)
 #include <WiFiS3.h>
 #endif
+#include <NTPClient.h>
+#include <WiFiUdp.h>
 
 #include <Firebase_ESP_Client.h>
 
@@ -52,7 +54,6 @@ const char PRIVATE_KEY[] PROGMEM = "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgk
 
 // Define Firebase Data object
 FirebaseData fbdo;
-FirebaseData collectionsfbdo;
 
 FirebaseAuth auth;
 FirebaseConfig config;
@@ -64,6 +65,22 @@ unsigned long dataMillis = 0;
 
 float target_temp = 0;
 bool should_change_collection = false;
+String session_collection_path;
+bool can_start_new_session = false;
+int sample_num = 0;
+unsigned long epochTime;
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org");
+String session_id = "";
+
+
+unsigned long getTime() {
+  timeClient.update();
+  unsigned long now = timeClient.getEpochTime();
+  return now;
+}
+
+
 
 
 #if defined(ARDUINO_RASPBERRY_PI_PICO_W)
@@ -130,6 +147,28 @@ void setup()
   // You can use TCP KeepAlive in FirebaseData object and tracking the server connection status, please read this for detail.
   // https://github.com/mobizt/Firebase-ESP-Client#about-firebasedata-object
   // fbdo.keepAlive(5, 5, 1);
+  timeClient.begin();
+
+  if(Firebase.ready()){
+        Serial.println("Creating new session: ");
+      epochTime = getTime();
+      session_id = String(epochTime);
+    Serial.println("Timestamp new session: ");
+    Serial.println(String(epochTime));
+      
+      FirebaseJson content;
+      String documentPath = "sessions/" + session_id;
+      content.set("fields/timestamp/stringValue", session_id);
+
+      if (Firebase.Firestore.createDocument(&fbdo, FIREBASE_PROJECT_ID, "" /* databaseId can be (default) or empty */, documentPath.c_str(), content.raw()))
+            {
+              Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+            }
+        else
+            Serial.println(fbdo.errorReason());
+  
+  }
+
 }
 
 void loop()
@@ -139,16 +178,11 @@ void loop()
 
   if (Firebase.ready())
   {
+
     // CHECKING TARGET TEMP
     if(millis() - dataMillis > 1000 || dataMillis == 0) {
       dataMillis = millis();
 
-    if (!taskCompleted)
-    {
-      taskCompleted = true;
-
-      // For the usage of FirebaseJson, see examples/FirebaseJson/BasicUsage/Create_Edit_Parse/Create_Edit_Parse.ino
-    }
 
     String documentPath = "target/6FgDIGvjkF9dUePasOEJ";
     String mask = "temperature";
@@ -162,8 +196,12 @@ void loop()
       FirebaseJson payload;
       payload.setJsonData(fbdo.payload().c_str());
       FirebaseJsonData jsonData;
-      payload.get(jsonData, "fields/temperature/integerValue", true);
-      float new_target_temp = jsonData.floatValue;
+      float new_target_temp;
+      if(payload.get(jsonData, "fields/temperature/integerValue", true)){
+        new_target_temp = jsonData.floatValue;
+      }
+      else if (payload.get(jsonData, "fields/temperature/doubleValue", true)){
+        new_target_temp = jsonData.floatValue;}
       if(new_target_temp != target_temp){
         target_temp = new_target_temp;
         should_change_collection = true;
@@ -173,33 +211,41 @@ void loop()
     }
     else
       Serial.println(fbdo.errorReason());
+
+
+    Serial.println("Adding new temperature record ");
+      epochTime = getTime();
+      FirebaseJson content;
+      String documentTempPath = "sessions/" + session_id + "/temperatures/" + String(epochTime);
+      // content.set("fields/temperature/floatValue", target_temp);
+      content.set("fields/timestamp/integerValue", String(epochTime));
+      content.set("fields/temperature/doubleValue", target_temp);
+      
+      if (Firebase.Firestore.createDocument(&fbdo, FIREBASE_PROJECT_ID, "" /* databaseId can be (default) or empty */, documentTempPath.c_str(), content.raw()))
+            {
+              Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+            sample_num++;
+            }
+        else
+            Serial.println(fbdo.errorReason());
     }
 
-    if(should_change_collection){
-      should_change_collection = false;
-
-      FirebaseJson query;
-      // query.set("select/fields/[0]/fieldPath", "myDouble");
-      // query.set("select/fields/[1]/fieldPath", "myInteger");
-        // query.set("select/fields/[2]/fieldPath", "myTimestamp");
-
-      query.set("from/collectionId", "sessions");
-      query.set("from/allDescendants", false);
-      query.set("orderBy/field/fieldPath", "timestamp");
-      query.set("orderBy/direction", "ASCENDING");
-      query.set("limit", 1);
-
-      if (Firebase.Firestore.runQuery(&collectionsfbdo, FIREBASE_PROJECT_ID, "" /* databaseId can be (default) or empty */, "/" /* The document path */, &query /* The FirebaseJson object holds the StructuredQuery data */))  
-        {
-          FirebaseJson payload;
-          FirebaseJsonData jsonData;
-          FirebaseJsonArray jsonArray;
-          jsonArray.setJsonArrayData(collectionsfbdo.payload().c_str());
-          jsonArray.get(jsonData, "[0]/document/name");
-          Serial.println(jsonData.stringValue);
-        }
-      else
-        Serial.println(collectionsfbdo.errorReason());
-    }
+    // if(millis() - dataMillis > 1000 || dataMillis == 0){
+    //   Serial.println("Adding new temperature record ");
+    //   epochTime = getTime();
+    //   FirebaseJson content;
+    //   String documentPath = "sessions/" + session_id + "/temperatures/" + String(epochTime);
+    //   // content.set("fields/temperature/floatValue", target_temp);
+    //   content.set("fields/timestamp/integerValue", String(epochTime));
+    //   content.set("fields/temperature/doubleValue", target_temp);
+      
+    //   if (Firebase.Firestore.createDocument(&fbdo, FIREBASE_PROJECT_ID, "" /* databaseId can be (default) or empty */, documentPath.c_str(), content.raw()))
+    //         {
+    //           Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+    //         sample_num++;
+    //         }
+    //     else
+    //         Serial.println(fbdo.errorReason());
+    // }
   }
 }
