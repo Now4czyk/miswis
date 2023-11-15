@@ -3,7 +3,7 @@ import { useFetch } from '../../firebase/useFetch';
 import { FirebaseService } from '../../firebase/firebase';
 import { Line } from 'react-chartjs-2';
 import 'chart.js/auto';
-import { Box } from '@chakra-ui/react';
+import { Box, Button, Flex } from '@chakra-ui/react';
 import { Models } from 'firebase/models';
 
 export const Chart: FC<{ id: string }> = ({ id }) => {
@@ -11,10 +11,6 @@ export const Chart: FC<{ id: string }> = ({ id }) => {
     () => FirebaseService.getSessionTemperatures(id),
     [id]
   );
-  useEffect(() => {
-    const interval = setInterval(reload, 5000);
-    return () => clearInterval(interval);
-  });
 
   const data = useMemo(
     () => ({
@@ -54,8 +50,9 @@ export const Chart: FC<{ id: string }> = ({ id }) => {
   );
 
   return (
-    <Box height={400}>
+    <Flex height={400}>
       <Line data={data} options={options} />
-    </Box>
+      <Button onClick={reload}>Odśwież</Button>
+    </Flex>
   );
 };

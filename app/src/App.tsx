@@ -40,7 +40,11 @@ const App: FC = () => {
 
   return (
     <div>
-      <Heading m="20px">Monitorowanie procesu grzewczego rezystora</Heading>
+      <Heading m="20px">
+        <a className="surprise" target="_blank" href="https://youtu.be/dQw4w9WgXcQ?t=42" rel="noreferrer">
+          Monitorowanie procesu grzewczego rezystora
+        </a>
+      </Heading>
       <Text m="20px">Zadana temperatura {target?.temperature}</Text>
       <Flex gap="2" m="20px" lineHeight="40px">
         <Text>Zadaj temperaturę</Text>
