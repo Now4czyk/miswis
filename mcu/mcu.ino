@@ -45,8 +45,8 @@ int PWM_pin = D6;
 float curr_temp = 0;
 
 float Tp = 1.0;
-float Kp = 80.28;
-float Ki = 0.8692;
+float Kp = 81.0646;
+float Ki = 0.044;
 float Kd = 0.01957;
 
 float prevError = 0;
